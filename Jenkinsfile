@@ -3,12 +3,6 @@ node {
     def testImage = 'qnib/pytest'
     def deliverImage = 'cdrx/pyinstaller-linux:python2'
 
-    properties([
-        pipelineTriggers([
-            pollSCM('H/2 * * * *')
-        ])
-    ])
-
     stage('Checkout Code') {
         checkout scm // Mengkloning repository
     }
