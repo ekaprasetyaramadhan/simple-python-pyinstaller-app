@@ -3,20 +3,13 @@ node {
     def testImage = 'qnib/pytest'
     def deliverImage = 'cdrx/pyinstaller-linux:python2'
 
-    properties([
-        pipelineTriggers([
-            pollSCM('H/2 * * * *')
-        ])
-    ])
-
-    stage('Debug') {
-        sh 'pwd'
-        sh 'ls -R'
+    stage('Checkout Code') {
+        checkout scm // Mengkloning repository
     }
 
     stage('Build') {
         docker.image(buildImage).inside {
-            sh 'python -m py_compile simple-python-pyinstaller-app/sources/add2vals.py simple-python-pyinstaller-app/sources/calc.py'
+            sh 'python -m py_compile sources/add2vals.py sources/calc.py'
         }
     }
 
