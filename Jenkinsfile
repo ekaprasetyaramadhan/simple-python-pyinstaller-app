@@ -9,6 +9,11 @@ node {
         ])
     ])
 
+    stage('Debug') {
+        sh 'pwd'
+        sh 'ls -R'
+    }
+
     stage('Build') {
         docker.image(buildImage).inside {
             sh 'python -m py_compile simple-python-pyinstaller-app/sources/add2vals.py simple-python-pyinstaller-app/sources/calc.py'
