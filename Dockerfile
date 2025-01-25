@@ -2,9 +2,9 @@
 FROM python:2-alpine
 
 # Install dependensi sistem yang diperlukan untuk PyInstaller dan Flask
-RUN apk add --no-cache gcc musl-dev libffi-dev
+RUN apk add --no-cache gcc musl-dev libffi-dev bash
 
-# Install PyInstaller untuk membuat executable
+# Install PyInstaller dan Flask
 RUN pip install pyinstaller flask
 
 # Menyalin seluruh kode aplikasi ke dalam direktori /app di dalam container
