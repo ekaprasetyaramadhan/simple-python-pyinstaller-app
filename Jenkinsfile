@@ -17,8 +17,8 @@ node {
             echo "Building Python application..."
             docker.image(BUILD_IMAGE).inside {
                 sh '''
-                    # Menyusun skrip Python untuk memastikan tidak ada kesalahan sintaksis
-                    python -m py_compile sources/add2vals.py sources/calc.py
+                    # Menggunakan PyInstaller untuk menghasilkan executable dari skrip Python
+                    pyinstaller --onefile sources/add2vals.py
                 '''
             }
         }
