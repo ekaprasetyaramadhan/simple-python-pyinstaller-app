@@ -15,7 +15,7 @@ node {
 
         stage('Build') {
             echo "Building Python application..."
-            docker.image(BUILD_IMAGE).inside {
+            docker.image(BUILD_IMAGE).inside("-u root") {
                 sh '''
                     ls -l sources  # Memastikan file add2vals.py ada
                     # Menjalankan pip install dengan root
