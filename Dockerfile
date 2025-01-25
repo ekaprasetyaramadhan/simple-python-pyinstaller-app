@@ -31,4 +31,4 @@ RUN pyinstaller --onefile sources/add2vals.py
 EXPOSE 5000
 
 # Menjalankan executable yang dihasilkan oleh PyInstaller
-ENTRYPOINT ["./dist/add2vals"]
+ENTRYPOINT ["./dist/add2vals", "10", "20"]
