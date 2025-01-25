@@ -46,6 +46,9 @@ node {
             echo "Pushing Docker image to EC2..."
             withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
                 sh """
+                    # Pastikan kunci host EC2 sudah terverifikasi
+                    ssh-keyscan -H ${AWS_EC2_IP} >> ~/.ssh/known_hosts
+                    # Muat image Docker ke EC2
                     docker save ${IMAGE_NAME}:latest | ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} 'docker load'
                 """
             }
@@ -55,6 +58,9 @@ node {
             echo "Deploying application on EC2..."
             withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
                 sh """
+                    # Pastikan kunci host EC2 sudah terverifikasi
+                    ssh-keyscan -H ${AWS_EC2_IP} >> ~/.ssh/known_hosts
+                    # Deploy aplikasi dengan Docker di EC2
                     ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} '
                     docker stop ${IMAGE_NAME} || true && \
                     docker rm ${IMAGE_NAME} || true && \
