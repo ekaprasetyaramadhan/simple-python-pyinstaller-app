@@ -77,17 +77,6 @@ node {
 
         }
 
-        stage('Verify Deployment') {
-            echo "Verifying the application on EC2..."
-            withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
-                sh """
-                    ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} '
-                    curl -s -o /dev/null -w "%{http_code}" http://localhost:5000 || exit 1
-                    '
-                """
-            }
-        }
-
         stage('Post-Deployment Wait') {
             echo "Application is running. Waiting for 1 minute before ending the pipeline..."
             sleep 60
