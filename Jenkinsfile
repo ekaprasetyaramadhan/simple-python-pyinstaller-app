@@ -1,8 +1,8 @@
 node {
     // Environment variables
-    def BUILD_IMAGE = 'python:2-alpine'
+    def BUILD_IMAGE = 'python:3-alpine'  // Menggunakan Python 3
     def TEST_IMAGE = 'qnib/pytest'
-    def DELIVER_IMAGE = 'cdrx/pyinstaller-linux:python2'
+    def DELIVER_IMAGE = 'cdrx/pyinstaller-linux:python3'  // Menggunakan Python 3
     def AWS_EC2_IP = '54.254.128.133'  // Ganti dengan IP EC2 Anda
     def SSH_CREDENTIALS_ID = 'python-app-keypair'  // ID kredensial SSH Anda
     def IMAGE_NAME = 'python-app'  // Nama image yang dibangun
@@ -39,7 +39,13 @@ node {
 
         stage('Build Docker Image') {
             echo "Building Docker image..."
-            sh "docker build -t ${IMAGE_NAME}:latest ."
+            try {
+                sh "docker build -t ${IMAGE_NAME}:latest ."
+            } catch (Exception e) {
+                echo "Docker image build failed!"
+                currentBuild.result = 'FAILURE'
+                throw e
+            }
         }
 
         stage('Push Docker Image to EC2') {
@@ -60,8 +66,8 @@ node {
             withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
                 sh """
                     ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} '
-                    docker stop ${IMAGE_NAME} || true && \
-                    docker rm ${IMAGE_NAME} || true && \
+                    docker stop ${IMAGE_NAME} || true
+                    docker rm ${IMAGE_NAME} || true
                     docker run -d --name ${IMAGE_NAME} -p 5000:5000 ${IMAGE_NAME}:latest
                     '
                 """
@@ -72,7 +78,9 @@ node {
             echo "Verifying the application on EC2..."
             withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
                 sh """
-                    ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} 'curl -s http://localhost:5000 || exit 1'
+                    ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} '
+                    curl -s -o /dev/null -w "%{http_code}" http://localhost:5000 || exit 1
+                    '
                 """
             }
         }
