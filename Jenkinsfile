@@ -46,21 +46,20 @@ node {
             echo "Pushing Docker image to EC2..."
             withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
                 sh """
-                    # Pastikan kunci host EC2 sudah terverifikasi
-                    ssh-keyscan -H ${AWS_EC2_IP} >> ~/.ssh/known_hosts
-                    # Muat image Docker ke EC2
                     docker save ${IMAGE_NAME}:latest | ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} 'docker load'
                 """
             }
+        }
+
+        // Manual Approval Stage
+        stage('Manual Approval') {
+            input message: 'Lanjutkan ke tahap Deploy?', ok: 'Proceed', parameters: []
         }
 
         stage('Deploy to EC2') {
             echo "Deploying application on EC2..."
             withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
                 sh """
-                    # Pastikan kunci host EC2 sudah terverifikasi
-                    ssh-keyscan -H ${AWS_EC2_IP} >> ~/.ssh/known_hosts
-                    # Deploy aplikasi dengan Docker di EC2
                     ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} '
                     docker stop ${IMAGE_NAME} || true && \
                     docker rm ${IMAGE_NAME} || true && \
@@ -70,10 +69,10 @@ node {
             }
         }
 
-        // Optional: Post-Deployment Verification
-        stage('Post-Deployment Check') {
-            echo "Performing post-deployment verification..."
-            // Opsional: Cek apakah aplikasi berjalan dengan baik di EC2
+        // Jeda pipeline selama 1 menit setelah deploy
+        stage('Post-Deployment Wait') {
+            echo "Application is running. Waiting for 1 minute before ending the pipeline..."
+            sleep 60 // Menunggu selama 1 menit
         }
 
     } catch (Exception e) {
