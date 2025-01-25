@@ -33,45 +33,40 @@ node {
 
         stage('Build Docker Image') {
             echo "Building Docker image..."
-            docker.image('docker:20.10.12').inside {
-                try {
-                    sh """
-                        docker build -t ${IMAGE_NAME}:latest .
-                    """
-                } catch (Exception e) {
-                    echo "Docker image build failed!"
-                    currentBuild.result = 'FAILURE'
-                    throw e
-                }
+            try {
+                sh "docker build -t ${IMAGE_NAME}:latest ."
+            } catch (Exception e) {
+                echo "Docker image build failed!"
+                currentBuild.result = 'FAILURE'
+                throw e
             }
         }
 
         stage('Push Docker Image to EC2') {
             echo "Pushing Docker image to EC2..."
-            docker.image('docker:20.10.12').inside {
-                withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
-                    sh """
-                        docker save ${IMAGE_NAME}:latest | ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} 'docker load'
-                    """
-                }
+            withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
+                sh """
+                    docker save ${IMAGE_NAME}:latest | ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} 'docker load'
+                """
             }
         }
 
         stage('Manual Approval') {
-            input message: 'Lanjutkan ke tahap Deploy?', ok: 'Proceed'
+            input message: 'Lanjutkan ke tahap Deploy?', ok: 'Proceed', parameters: []
         }
 
         stage('Deploy to EC2') {
             echo "Deploying application on EC2..."
             withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
-                sh """
-                    ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} '
-                    docker stop ${IMAGE_NAME} || true
-                    docker rm ${IMAGE_NAME} || true
-                    docker run -d --name ${IMAGE_NAME} -p 5000:5000 ${IMAGE_NAME}:latest
-                    '
-                """
-            }
+    sh """
+        ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} '
+        docker stop ${IMAGE_NAME} || true
+        docker rm ${IMAGE_NAME} || true
+        docker run -d --name ${IMAGE_NAME} -p 5000:5000 ${IMAGE_NAME}:latest
+        '
+    """
+}
+
         }
 
         stage('Post-Deployment Wait') {
