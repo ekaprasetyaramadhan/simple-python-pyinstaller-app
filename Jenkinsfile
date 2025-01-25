@@ -18,7 +18,7 @@ node {
             docker.image(BUILD_IMAGE).inside {
                 sh '''
                     ls -l sources  # Memastikan file add2vals.py ada
-                    pip install pyinstaller
+                    pip install --user pyinstaller  # Instal pyinstaller dengan opsi --user
                     pyinstaller --onefile sources/add2vals.py
                 '''
             }
