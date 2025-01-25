@@ -2,7 +2,7 @@
 FROM python:3.8-alpine
 
 # Install dependensi sistem yang diperlukan untuk PyInstaller
-RUN apk add --no-cache gcc musl-dev libffi-dev bash
+RUN apk add --no-cache gcc musl-dev libffi-dev bash binutils
 
 # Install PyInstaller dan Flask
 RUN pip install pyinstaller flask
@@ -16,8 +16,8 @@ WORKDIR /app
 # Membuat executable dengan PyInstaller
 RUN pyinstaller --onefile sources/add2vals.py
 
-# Expose port 80 untuk aplikasi Flask
+# Expose port 80 untuk aplikasi Flask (jika menggunakan Flask untuk UI)
 EXPOSE 80
 
 # CMD untuk menjalankan executable yang dihasilkan oleh PyInstaller
-CMD ["./dist/add2vals"]
+ENTRYPOINT ["./dist/add2vals"]
