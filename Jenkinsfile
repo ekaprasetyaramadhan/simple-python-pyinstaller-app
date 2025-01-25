@@ -66,14 +66,15 @@ node {
         stage('Deploy to EC2') {
             echo "Deploying application on EC2..."
             withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
-                sh """
-                    ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} '
-                    docker stop ${IMAGE_NAME} || true
-                    docker rm ${IMAGE_NAME} || true
-                    docker run -d --name ${IMAGE_NAME} -p 5000:5000 ${IMAGE_NAME}:latest
-                    '
-                """
-            }
+    sh """
+        ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} '
+        docker stop ${IMAGE_NAME} || true
+        docker rm ${IMAGE_NAME} || true
+        docker run -d --name ${IMAGE_NAME} -p 5000:5000 ${IMAGE_NAME}:latest
+        '
+    """
+}
+
         }
 
         stage('Verify Deployment') {
