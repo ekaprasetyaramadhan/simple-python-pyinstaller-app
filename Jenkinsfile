@@ -2,79 +2,84 @@ node {
     // Environment variables
     def BUILD_IMAGE = 'python:3-alpine'  // Menggunakan Python 3
     def TEST_IMAGE = 'qnib/pytest'
-    def DELIVER_IMAGE = 'cdrx/pyinstaller-linux:python3'  // Menggunakan Python 3
+    def DELIVER_IMAGE = 'cdrx/pyinstaller-linux:python3'  // Menggunakan PyInstaller untuk Python 3
     def AWS_EC2_IP = '54.254.128.133'  // Ganti dengan IP EC2 Anda
-    def SSH_CREDENTIALS_ID = 'python-app-keypair'  // ID kredensial SSH Anda
-    def IMAGE_NAME = 'python-app'  // Nama image yang dibangun
+    def SSH_CREDENTIALS_ID = 'python-app-keypair'  // ID kredensial SSH
+    def IMAGE_NAME = 'python-app'  // Nama image Docker
 
     try {
         stage('Checkout Code') {
             echo "Cloning repository..."
-            checkout scm // Mengkloning repository dari SCM
+            checkout scm  // Mengkloning repository dari source control
         }
 
         stage('Build') {
-            echo "Building Python application..."
-           docker.image(BUILD_IMAGE).inside("-u root") {
-    sh '''
-        ls -l sources  # Memastikan file add2vals.py ada
-        apk add --no-cache gcc musl-dev libffi-dev bash binutils
-        pip install pyinstaller  # Instal pyinstaller menggunakan pip
-        pyinstaller --onefile sources/add2vals.py  # Jalankan pyinstaller
-    '''
-}
-
+            echo "Building application..."
+            docker.image(BUILD_IMAGE).inside {
+                sh 'python -m py_compile sources/add2vals.py sources/calc.py'
+            }
         }
 
         stage('Test') {
             echo "Running tests..."
             docker.image(TEST_IMAGE).inside {
                 try {
-                    sh '''
-                        py.test --verbose --junit-xml test-reports/results.xml sources/test_calc.py
-                    '''
+                    sh 'py.test --verbose --junit-xml test-reports/results.xml sources/test_calc.py'
                 } finally {
                     junit 'test-reports/results.xml'  // Menghasilkan laporan pengujian JUnit
                 }
             }
         }
 
+        stage('Deliver') {
+            echo "Packaging application with PyInstaller..."
+            docker.image(DELIVER_IMAGE).inside {
+                sh 'pyinstaller --onefile sources/add2vals.py'
+            }
+            archiveArtifacts 'dist/add2vals'  // Mengarsipkan file hasil build
+        }
+
         stage('Build Docker Image') {
             echo "Building Docker image..."
-            try {
-                sh "docker build -t ${IMAGE_NAME}:latest ."
-            } catch (Exception e) {
-                echo "Docker image build failed!"
-                currentBuild.result = 'FAILURE'
-                throw e
+            docker.image('docker:20.10.12').inside {
+                try {
+                    sh """
+                        docker build -t ${IMAGE_NAME}:latest .
+                    """
+                } catch (Exception e) {
+                    echo "Docker image build failed!"
+                    currentBuild.result = 'FAILURE'
+                    throw e
+                }
             }
         }
 
         stage('Push Docker Image to EC2') {
             echo "Pushing Docker image to EC2..."
-            withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
-                sh """
-                    docker save ${IMAGE_NAME}:latest | ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} 'docker load'
-                """
+            docker.image('docker:20.10.12').inside {
+                withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
+                    sh """
+                        docker save ${IMAGE_NAME}:latest | ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} 'docker load'
+                    """
+                }
             }
         }
 
         stage('Manual Approval') {
-            input message: 'Lanjutkan ke tahap Deploy?', ok: 'Proceed', parameters: []
+            input message: 'Lanjutkan ke tahap Deploy?', ok: 'Proceed'
         }
 
         stage('Deploy to EC2') {
             echo "Deploying application on EC2..."
             withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
-    sh """
-        ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} '
-        docker stop ${IMAGE_NAME} || true
-        docker rm ${IMAGE_NAME} || true
-        docker run -d --name ${IMAGE_NAME} -p 5000:5000 ${IMAGE_NAME}:latest
-        '
-    """
-}
-
+                sh """
+                    ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} '
+                    docker stop ${IMAGE_NAME} || true
+                    docker rm ${IMAGE_NAME} || true
+                    docker run -d --name ${IMAGE_NAME} -p 5000:5000 ${IMAGE_NAME}:latest
+                    '
+                """
+            }
         }
 
         stage('Post-Deployment Wait') {
