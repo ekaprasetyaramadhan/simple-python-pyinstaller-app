@@ -1,7 +1,7 @@
-# Menggunakan image Python versi 2-alpine sebagai base image
-FROM python:2-alpine
+# Menggunakan image Python versi 3.8-alpine sebagai base image
+FROM python:3.8-alpine
 
-# Install dependensi sistem yang diperlukan untuk PyInstaller dan Flask
+# Install dependensi sistem yang diperlukan untuk PyInstaller
 RUN apk add --no-cache gcc musl-dev libffi-dev bash
 
 # Install PyInstaller dan Flask
