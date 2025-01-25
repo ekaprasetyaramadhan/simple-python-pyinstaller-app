@@ -1,17 +1,23 @@
-# Menggunakan image Python versi 2
+# Menggunakan image Python versi 2-alpine sebagai base image
 FROM python:2-alpine
 
-# Menginstal dependensi sistem yang diperlukan
+# Install dependensi sistem yang diperlukan untuk PyInstaller dan Flask
 RUN apk add --no-cache gcc musl-dev libffi-dev
 
-# Menginstal Flask
-RUN pip install flask
+# Install PyInstaller untuk membuat executable
+RUN pip install pyinstaller flask
 
-# Menyalin aplikasi ke dalam container
+# Menyalin seluruh kode aplikasi ke dalam direktori /app di dalam container
 COPY . /app
 
 # Menetapkan direktori kerja
 WORKDIR /app
 
-# Menjalankan aplikasi Flask
-CMD ["python", "app.py"]
+# Membuat executable dengan PyInstaller
+RUN pyinstaller --onefile sources/add2vals.py
+
+# Expose port 80 untuk aplikasi Flask
+EXPOSE 80
+
+# CMD untuk menjalankan executable yang dihasilkan oleh PyInstaller
+CMD ["./dist/add2vals"]
