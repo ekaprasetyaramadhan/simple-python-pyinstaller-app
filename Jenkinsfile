@@ -15,13 +15,15 @@ node {
 
         stage('Build') {
             echo "Building Python application..."
-            docker.image(BUILD_IMAGE).inside("-u root") {
-                sh '''
-                    ls -l sources  # Memastikan file add2vals.py ada
-                    apk add --no-cache pyinstaller  # Instal pyinstaller
-                    pyinstaller --onefile sources/add2vals.py  # Jalankan pyinstaller
-                '''
-            }
+           docker.image(BUILD_IMAGE).inside("-u root") {
+    sh '''
+        ls -l sources  # Memastikan file add2vals.py ada
+        apk add --no-cache gcc musl-dev libffi-dev bash binutils
+        pip install pyinstaller  # Instal pyinstaller menggunakan pip
+        pyinstaller --onefile sources/add2vals.py  # Jalankan pyinstaller
+    '''
+}
+
         }
 
         stage('Test') {
