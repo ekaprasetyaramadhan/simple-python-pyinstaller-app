@@ -17,7 +17,8 @@ node {
             echo "Building Python application..."
             docker.image(BUILD_IMAGE).inside {
                 sh '''
-                    # Menggunakan PyInstaller untuk menghasilkan executable dari skrip Python
+                    ls -l sources  # Memastikan file add2vals.py ada
+                    pip install pyinstaller
                     pyinstaller --onefile sources/add2vals.py
                 '''
             }
@@ -28,7 +29,6 @@ node {
             docker.image(TEST_IMAGE).inside {
                 try {
                     sh '''
-                        # Menjalankan pengujian dengan pytest dan menghasilkan laporan JUnit
                         py.test --verbose --junit-xml test-reports/results.xml sources/test_calc.py
                     '''
                 } finally {
@@ -51,7 +51,6 @@ node {
             }
         }
 
-        // Manual Approval Stage
         stage('Manual Approval') {
             input message: 'Lanjutkan ke tahap Deploy?', ok: 'Proceed', parameters: []
         }
@@ -63,16 +62,24 @@ node {
                     ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} '
                     docker stop ${IMAGE_NAME} || true && \
                     docker rm ${IMAGE_NAME} || true && \
-                    docker run -d --name ${IMAGE_NAME} -p 80:80 ${IMAGE_NAME}:latest
+                    docker run -d --name ${IMAGE_NAME} -p 5000:5000 ${IMAGE_NAME}:latest
                     '
                 """
             }
         }
 
-        // Jeda pipeline selama 1 menit setelah deploy
+        stage('Verify Deployment') {
+            echo "Verifying the application on EC2..."
+            withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
+                sh """
+                    ssh -i ${SSH_KEY} ubuntu@${AWS_EC2_IP} 'curl -s http://localhost:5000 || exit 1'
+                """
+            }
+        }
+
         stage('Post-Deployment Wait') {
             echo "Application is running. Waiting for 1 minute before ending the pipeline..."
-            sleep 60 // Menunggu selama 1 menit
+            sleep 60
         }
 
     } catch (Exception e) {
