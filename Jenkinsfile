@@ -31,14 +31,6 @@ node {
             }
         }
 
-        stage('Deliver') {
-            echo "Packaging application with PyInstaller..."
-            docker.image(DELIVER_IMAGE).inside {
-                sh 'pyinstaller --onefile sources/add2vals.py'
-            }
-            archiveArtifacts 'dist/add2vals'  // Mengarsipkan file hasil build
-        }
-
         stage('Build Docker Image') {
             echo "Building Docker image..."
             docker.image('docker:20.10.12').inside {
