@@ -18,8 +18,10 @@ node {
             docker.image(BUILD_IMAGE).inside {
                 sh '''
                     ls -l sources  # Memastikan file add2vals.py ada
-                    pip install --user pyinstaller  # Instal pyinstaller dengan opsi --user
-                    pyinstaller --onefile sources/add2vals.py
+                    # Menjalankan pip install dengan root
+                    apk add --no-cache sudo  # Menambahkan sudo jika tidak ada
+                    sudo pip install pyinstaller  # Instal pyinstaller dengan sudo
+                    sudo pyinstaller --onefile sources/add2vals.py  # Jalankan pyinstaller dengan sudo
                 '''
             }
         }
